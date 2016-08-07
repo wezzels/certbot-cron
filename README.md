@@ -1,2 +1,24 @@
 # certbot-cron
-Cron runs daily and tests if it is time to renew a SSL cert.  Sitting in a hotel in Pala Alto, CA near GooglePlex,  I felt insipred to write and publish something.  Little silly but works.  
+Name: certbot-cron
+Author: Wesley Robbins
+Usage: Edit change configs to your site's needs.
+	./certbot-cron 
+Description:  certbot-cron is a tool that enables the certbot certificate to be tested daily. If the certificate is within 5 days of expiration, the certificate is renewed.   
+
+Todo: Commandline options.  Add a help option. read configfile instead of editing the file.
+
+
+License:
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
