@@ -12,7 +12,8 @@
 #  0 3 0 * * path-to-certbot-cron 2>&1 
 
 URL='NOTSET'
-PrintInfo=''
+PrintInfo='no'
+TESTRUN='no'
 CERTBOTLOC='NOTSET'
 WEBSTART='/etc/init.d/apache2 start'
 WEBSTOP='/etc/init.d/apache2 stop'
@@ -33,7 +34,7 @@ load_config() {
 }
 
 save_config() {
-   if [[ $EUID -ne 0 ]]; then
+   if [[ $EUID -eq 0 ]]; then
      cat <<EOF_root >> /etc/certbot-cronrc
 URL=${URL}
 PrintInfo=${PrintInfo}
@@ -71,45 +72,41 @@ print_help() {
 # Test if all required vars are set.
 is_all_set() {
  
-if [ ${URL} = 'NOTSET' ]; then
-   echo "Error: URL not set. Exiting."
+if [ ${URL} = 'NOTSET' ] || [ ${CERTBOTLOC} = 'NOTSET' ] ; then
+   echo "Error: certbotloc and url must be set."
+   print_help
    exit
 fi
  
-if [ ${CERTBOTLOC} = 'NOTSET' ]; then
-   echo "Error: certbot-auto application not found. Provide location."
-   exit
-fi
 }
 
  
 # load_config
 #is_all_set
-
-OPTIONS=`getopt -o uh::psltc: --long url,help,printinfo,saveconf:certbotloc,testrun,config:: -- "$@"`
+OPTIONS=`getopt -o u::h::v::s::l::t::c:: --long help::,verbose::,saveconf,url::,certbotloc::,testrun::,config:: -n "${0##*/}" -- "$@"`
 eval set -- "$OPTIONS"
-while true; do
-case $1 in
+ while true; do
+ case $1 in
      -u|--url)
        case "$2" in
-         "") URL=${HOSTNAME} ; shift 2 ;;
-         *) URL="$2" ; shift 2 ;;
+         '')  URL=`uname -n` ; shift 2 ;;
+          *)  URL="$2" ; shift 2 ;;
        esac ;;
-     -p|--printInfo)
+     -v | --verbose)
        case "$2" in
          "") PrintInfo='yes' ; shift 2 ;;
           *) PrintInfo="$2" ; shift 2 ;;
        esac ;;
      -s|--saveconf) save_config; shift ;;
-     -l|--certbotLocation)
+     -l|--certbotloc)
        case "$2" in
          "") CERTBOTLOC="/usr/local/bin/certbot-auto" ; shift 2 ;;
           *) CERTBOTLOC="$2" ; shift 2 ;;
        esac ;;
-     -t|--testRun)
+     -t|--testrun)
        case "$2" in
          "") TESTRUN='yes' ; shift 2 ;;
-          *) TESTRUN="$2" ; shift 2 ;;
+          *) TESTRUN="$2" ; shift 2 ;; 
        esac ;;
      -c|--config)
        case "$2" in
@@ -118,11 +115,20 @@ case $1 in
        esac ;;
      -h|--help) HELP='yes' && print_help ; shift ;;
      --) shift; break ;;
-     *) echo "Error: requires arguments." ; exit 1 ;;
+     *) echo "Error: requires arguments." ; exit 1 ;; 
  esac
-done
+ done
 
-exit
+if [ ${TESTRUN} = 'yes' ] || [ ${PrintInfo} = "yes" ] ; then
+  echo "testrun=${TESTRUN}"
+  echo "certbotloc=${CERTBOTLOC}"
+  echo "verbose=${PrintInfo}"
+  echo "url=${URL}"
+  echo "configloc=${CONFIGLOC}"
+fi
+
+#final check if the URL and CERTBOTLOC is set.
+is_all_set
 
 notBefore=`echo | /usr/bin/openssl s_client -connect ${URL}:443 2>/dev/null | openssl x509 -noout -dates | grep notBefore | cut -d'=' -f2`
 notAfter=`echo | /usr/bin/openssl s_client -connect ${URL}:443 2>/dev/null | openssl x509 -noout -dates | grep notAfter | cut -d'=' -f2`
@@ -145,13 +151,14 @@ else
      echo "\n\n"
      echo "Time to renew your cert. Today is ${today} and your cert expires ${notAfter}"
    fi
-     if [ $TESTRUN = 'yes' ];
+     if [ $TESTRUN = 'yes' ]; then 
        ${WEBSTOP}
-       ${CERTBOTLOC} renew --dry-run
+#       ${CERTBOTLOC} renew --dry-run
        ${WEBSTART}
      else
        ${WEBSTOP}
-       ${CERTBOT} renew --quiet --no-self-upgrade
+#       ${CERTBOT} renew --quiet --no-self-upgrade
        ${WEBSTART}
      fi
 fi
+
